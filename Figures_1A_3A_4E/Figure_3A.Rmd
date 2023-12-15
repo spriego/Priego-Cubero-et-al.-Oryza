@@ -1,0 +1,104 @@
+---
+title: "CHROMATOGRAMS"
+output: html_document
+date: "2023-05-31"
+---
+
+# Load libraries 
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readxl)
+library(MetBrewer)
+```
+
+## Load raw data
+```{r}
+chromatograms <- read_excel("input/For_chromatograms.xlsx", sheet = "P.officinalis CuCl2", skip = 1)
+```
+
+## Tidy data
+
+```{r}
+ooffi_chromatograms <- 
+  chromatograms %>% 
+  select(ends_with('ooffi')) %>%
+  mutate(sample = 'ooffi') %>%
+  rename(RT = RT_ooffi,
+         MA = MA_ooffi,
+         MB = MB_ooffi)
+```
+
+```{r}
+standard_chromatograms <- 
+  chromatograms %>% 
+  select(ends_with('standard')) %>%
+  mutate(sample = 'standard') %>%
+  rename(RT = RT_standard,
+         MA = MA_standard,
+         MB = MB_standard)
+```
+
+```{r}
+tidy_chromatogram <- 
+  rbind(ooffi_chromatograms, standard_chromatograms) %>%
+  pivot_longer(cols = !c('sample', 'RT'),
+               values_to = 'intensity',
+               names_to = 'Momilactone')
+```
+
+## PLOT
+
+
+```{r}
+peak_ma <- 
+  tidy_chromatogram %>%
+  filter(sample == 'standard') %>%
+  filter(Momilactone == 'MA') %>%
+  filter(intensity == max(intensity)) %>%
+  pull(RT)
+
+peak_mb <- 
+  tidy_chromatograp %>%
+  filter(sample == 'standard') %>%
+  filter(Momilactone == 'MB') %>%
+  filter(intensity == max(intensity)) %>%
+  pull(RT)
+  
+```
+
+             
+```{r}
+tidy_chromatograp %>%
+  ggplot(aes(x = RT,
+             y = intensity,
+             color = Momilactone)) +
+  facet_grid( rows = vars(sample),  
+              scales = "free_y",
+              space = "fixed"
+              ) +
+  geom_line(size = 0.8) +
+  geom_vline(xintercept = peak_mb,
+             linetype= 'dotted',
+             color = 'grey') +
+  geom_vline(xintercept = peak_ma,
+             linetype= 'dotted',
+             color = 'grey') +
+  MetBrewer::scale_color_met_d('Kandinsky') +
+  theme_classic() + 
+  theme(
+        text = element_text(family = "Helvetica", size = 12),
+        strip.background = element_rect(colour=NA, fill=NA),
+        panel.border = element_rect(fill = NA, 
+                                    linewidth = 1,
+                                    color = "black"),
+        panel.spacing = unit(0.2, "lines")
+        )
+```
+
+```{r}
+ ggsave( '/dss/dsslegfs01/pn73so/pn73so-dss-0000/lab/santi/oryza-phylogenetic-trees/plots/Ooffi_chromatograms.pdf',
+      dpi = 400,
+      width = 5, 
+      height = 5) 
+```
+
