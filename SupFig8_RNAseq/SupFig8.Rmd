@@ -1,0 +1,417 @@
+---
+title: "rnaseq"
+output: html_document
+date: "2024-04-04"
+---
+
+# Nextflow
+
+## O. officinalis 
+
+### Annotation of CYP76M14
+
+I have noticed that CYP76M14 is not annotated in O. officinalis genome. 
+I have done nBLAST using the gDNA sequence on O. sativa and I have found that this species actually has 3 copies of this gene.
+I will manually annotate then and re-run the RNA-seq analysis (the file is called `Ooffi_maker_gene_annotation_modified.gff`)
+
+
+```
+OoffiChr01	manual_annotation	gene	31900002	31901558	.	+	.	ID=CYP76M14_1;Name=CYP76M14_1;Alias=CYP76M14_1_gene;
+OoffiChr01	manual_annotation	mRNA	31900002	31901558	.	+	.	ID=CYP76M14_1.1;Parent=CYP76M14_1;Name=CYP76M14_1.1;Alias=CYP76M14_1-mRNA-1;
+OoffiChr01	manual_annotation	exon	31900002	31901558	.	+	.	ID=CYP76M14_1.1:exon:0;Parent=CYP76M14_1.1;
+OoffiChr01	manual_annotation	CDS	31900002	31901558	.	+	0	ID=CYP76M14_1.1:cds;Parent=CYP76M14_1.1;
+OoffiChr01	manual_annotation	gene	32851333	32852889	.	+	.	ID=CYP76M14_2;Name=CYP76M14_2;Alias=CYP76M14_2_gene;
+OoffiChr01	manual_annotation	mRNA	32851333	32852889	.	+	.	ID=CYP76M14_2.1;Parent=CYP76M14_2;Name=CYP76M14_2.1;Alias=CYP76M14_2-mRNA-1;
+OoffiChr01	manual_annotation	exon	32851333	32852889	.	+	.	ID=CYP76M14_2.1:exon:0;Parent=CYP76M14_2.1;
+OoffiChr01	manual_annotation	CDS	32851333	32852889	.	+	0	ID=CYP76M14_2.1:cds;Parent=CYP76M14_2.1;
+OoffiChr03	manual_annotation	gene	30558655	30560211	.	+	.	ID=CYP76M14_3;Name=CYP76M14_3;Alias=CYP76M14_3_gene;
+OoffiChr03	manual_annotation	mRNA	30558655	30560211	.	+	.	ID=CYP76M14_3.1;Parent=CYP76M14_3;Name=CYP76M14_3.1;Alias=CYP76M14_3-mRNA-1;
+OoffiChr03	manual_annotation	exon	30558655	30560211	.	+	.	ID=CYP76M14_3.1:exon:0;Parent=CYP76M14_3.1;
+OoffiChr03	manual_annotation	CDS	30558655	30560211	.	+	0	ID=CYP76M14_3.1:cds;Parent=CYP76M14_3.1;
+```
+
+### Downloading public datasets:
+
+Load nextflow and charliecloud:
+```bash
+module load nextflow/23.10.0-gcc11-ew4
+module load charliecloud/0.37-gcc11-mlm
+```
+
+officinalis_ids.tsv:
+```
+DRR342057
+SRR16192094
+DRR003978
+SRR1582383
+DRR001554
+DRR001553
+SRR2102055
+SRR2102056
+SRR2102057
+SRR1179195
+SRR1179194
+SRR1179193
+```
+
+
+```bash
+nextflow \
+	run nf-core/fetchngs \
+		--input officinalis_ids.tsv \
+		-r 1.12.0 \
+		--outdir officinalis_fetchngs_results \
+		-profile biohpc_gen \
+		--nf_core_pipeline rnaseq
+```
+
+Add Itoh et al. (2021) UV-irradiated leaf sample to the samplesheet:
+
+W0002_CACTCA_L007_R1_001.fastq.gz
+W0002_CACTCA_L007_R2_001.fastq.gz
+
+Run pipeline
+
+```bash
+nextflow \
+run \
+nf-core/rnaseq \
+--input officinalis_fetchngs_results/samplesheet/samplesheet.csv \
+--fasta Ooffic_genome.fa \
+--gff Ooffi_maker_gene_annotation_modified.gff \
+--skip_stringtie \
+-profile biohpc_gen \
+-process.maxRetries 2 \
+--outdir officinalis_20.06.24 \
+-r 3.14.0
+```
+
+
+## O. coarctata
+
+I will also add public datasets for O. coarctata:
+
+coarctata_ids.tsv
+```
+SRR23501991
+SRR23501992
+SRR23501993
+SRR23501994
+SRR23501995
+SRR23501996
+SRR23501997
+SRR23501998
+SRR23501999
+SRR23502000
+SRR23502001
+SRR23502002
+```
+
+### Downloading public datasets:
+```bash
+nextflow \
+  run nf-core/fetchngs \
+    --input coarctata_ids.tsv \
+    -r 1.12.0 \
+    --outdir coarctata_fetchngs_results \
+    -profile biohpc_gen \
+    --nf_core_pipeline rnaseq
+```
+
+Add Itoh et al. (2021) UV-irradiated leaf sample to the samplesheet:
+
+W0551_CAAAAG_L007_R1_001.fastq.gz
+W0551_CAAAAG_L007_R2_001.fastq.gz
+
+
+### Fix annotation 
+
+to be compatible with the pipeline
+
+
+```bash
+module load nextflow/21.10.3-gcc8
+module load charliecloud/0.27-gcc11-u7f
+```
+
+Pull the container: 
+
+```bash
+ch-image pull quay.io/biocontainers/agat:1.1.0--pl5321hdfd78af_1 agat
+```
+
+Fix gff
+```bash
+ch-run agat \
+    -b genomes:/genomes/ \
+    --write \
+    -- agat_convert_sp_gxf2gxf.pl \
+    --gff genomes/Oco_Chr_genome_all.gff \
+    -o genomes/Oco_Chr_genome_all.fixed.gff
+```
+Convert gff to gtf
+```bash
+ch-run agat \
+  -b genomes:/genomes/ \
+  --write -- agat_convert_sp_gff2gtf.pl \
+  --gff genomes/Oco_Chr_genome_all.fixed.gff \
+  -o genomes/Oco_Chr_genome_all.fixed.gtf
+```
+
+I will remove tRNAscan from the gtf file. The pipeline is not compatible with tRNA loci. The annotated genes are those that have in the second column the EVM value
+
+```bash
+awk '/EVM/' Oco_Chr_genome_all.fixed.gtf > Oco_Chr_genome_all.fixed.EVM_only.gtf
+```
+
+```bash
+nextflow \
+run \
+nf-core/rnaseq \
+--input coarctata_fetchngs_results/samplesheet/samplesheet.csv \
+--fasta Oco-Chr_genome_rm.fa \
+--gtf Oco_Chr_genome_all.fixed.EVM_only.gtf \
+--skip_stringtie \
+-profile biohpc_gen \
+-process.maxRetries 2 \
+--outdir coarctata_20.06.24 \
+-r 3.14.0
+```
+
+
+
+
+# R 
+
+```{r}
+library(tidyverse)
+library(gggenes)
+```
+
+## O. coarctata
+
+
+```{r read data}
+coarctata_rnaseq <- read_tsv("./input/O_coarctata_salmon.merged.gene_tpm.tsv") %>%
+  dplyr::select(!('gene_id')) %>%
+  pivot_longer(cols = !gene_name,
+               names_to = 'sample_id',
+               values_to = 'TPM') %>%
+  mutate(sample_name = case_when(
+    sample_id == 'SRX19395286' ~ 'Leaf_Control_1',
+    sample_id == 'SRX19395287' ~ 'Leaf_Control_2',
+    sample_id == 'SRX19395288' ~ 'Root_Treatment_2',
+    sample_id == 'SRX19395289' ~ 'Root_Treatment_3',
+    sample_id == 'SRX19395290' ~ 'Leaf_Control_3',
+    sample_id == 'SRX19395291' ~ 'Leaf_Treatment_1',
+    sample_id == 'SRX19395292' ~ 'Leaf_Treatment_2',
+    sample_id == 'SRX19395293' ~ 'Leaf_Treatment_3',
+    sample_id == 'SRX19395294' ~ 'Root_Control_1',
+    sample_id == 'SRX19395295' ~ 'Root_Control_2',
+    sample_id == 'SRX19395296' ~ 'Root_Control_3',
+    sample_id == 'SRX19395297' ~ 'Root_Treatment_1',
+    TRUE ~ sample_id
+  ))
+
+```
+
+O. coarctata momilactone genes
+
+CPS4 Oco08G001460
+MAS Oco08G001470
+CYP76L11 Oco08G001480
+KSL4 Oco08G001500.1
+CYP99A Oco08G001510
+
+
+CYP701A8 - Oco11G011450	Oco12G011620 Oco12G011590	Oco12G011610
+CYP76M8 - Oco03G013170
+CYP76M14 - Oco01G012750
+
+
+```{r}
+OcoMBGC <- c("Oco08G001460", "Oco08G001470", "Oco08G001480", "Oco08G001500", "Oco08G001510", "Oco11G011450",	"Oco12G011620", "Oco12G011590",	"Oco12G011610", "Oco03G013170", "Oco01G012750")
+
+OcoMBGC_order <- c("OcoCPS4", "OcoMAS", "OcoCYP76L11", "OcoKSL4", "OcoCYP99A", "OcoCYP701A8-1", "OcoCYP701A8-2", "OcoCYP701A8-3", "OcoCYP701A8-4", "OcoCYP76M8", "OcoCYP76M14")
+
+```
+
+
+```{r}
+coarctata_rnaseq_MBGC <- 
+  coarctata_rnaseq %>%
+  filter(gene_name %in% OcoMBGC ) %>%
+  mutate(momilactone_gene = case_when(
+    gene_name == "Oco08G001460" ~ "OcoCPS4",
+    gene_name == "Oco08G001470" ~ "OcoMAS",
+    gene_name == "Oco08G001480" ~ "OcoCYP76L11",
+    gene_name == "Oco08G001500" ~ "OcoKSL4",
+    gene_name == "Oco08G001510" ~ "OcoCYP99A",
+    gene_name == "Oco11G011450" ~ "OcoCYP701A8-1",
+    gene_name == "Oco12G011620" ~ "OcoCYP701A8-2",
+    gene_name == "Oco12G011590" ~ "OcoCYP701A8-3",
+    gene_name == "Oco12G011610" ~ "OcoCYP701A8-4",
+    gene_name == "Oco03G013170" ~ "OcoCYP76M8",
+    gene_name == "Oco01G012750" ~ "OcoCYP76M14",
+    TRUE ~ gene_name
+  )) %>%
+  mutate(cluster = case_when(
+    gene_name == "Oco08G001460" ~ "MBGC",
+    gene_name == "Oco08G001470" ~ "MBGC",
+    gene_name == "Oco08G001480" ~ "MBGC",
+    gene_name == "Oco08G001500" ~ "MBGC",
+    gene_name == "Oco08G001510" ~ "MBGC",
+    TRUE ~ "Outside_the_cluster"
+  )) %>%
+  unite('sample_id_name', c('sample_name', 'sample_id'), sep = '_' ) %>%
+  ggplot(aes(y = sample_id_name,
+             x = fct_relevel(momilactone_gene, OcoMBGC_order),# setting the order
+             fill = TPM)) +
+  facet_grid(~factor(cluster, levels = c("MBGC", "Outside_the_cluster")), 
+             drop = T, 
+             scales="free_x", 
+             space="free_x") +
+  scale_fill_gradientn(colors = RColorBrewer::brewer.pal(9, "PuBuGn"),
+                      trans = "log",
+                       breaks = scales::trans_breaks("log10", function(x) 10^x)(c(1, 1e6)),
+                       limits = c(1, 1000),
+                      na.value = "#FFF7FB",
+                       oob = scales::squish) +
+  labs(x = "", 
+       y = "") +
+  scale_x_discrete(position = "top") + # Put x axis on top 
+  theme_classic() +
+  theme(
+        text = element_text(family = "Helvetica", size = 14),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(3, 'mm'),
+        axis.text.x = element_text(size = 14, angle = 45, vjust = 0.5, hjust=0),
+        panel.border = element_rect(fill = NA,
+                                    linewidth = 1,
+                                    color = "black"),
+        panel.spacing = unit(0.2, "lines")
+        ) +
+  geom_tile()
+  
+coarctata_rnaseq_MBGC
+```
+
+
+```{r}
+ ggsave('Ocoarctata_MBGC_TPM_heatmap.pdf', 
+      dpi = 400,
+      width = 10, 
+      height = 4)
+```
+
+## O. officinalis
+
+
+```{r read data}
+officinalis_rnaseq <- read_tsv("./input/O_officinalis_270624_salmon.merged.gene_tpm.tsv") %>%
+  dplyr::select(!('gene_id')) %>%
+  pivot_longer(cols = !gene_name, 
+               names_to = 'Experiment',
+               values_to = 'TPM')
+
+```
+O. officinalis momilactone genes
+
+CPS4 OoffiChr04g00263
+MAS OoffiChr04g00266
+KSL4-2 OoffiChr04g00265 
+KSL4-1 OoffiChr04g00269
+CYP99A-1 OoffiChr04g00260
+CYP99A-2 OoffiChr04g00264
+
+```{r}
+OoMBGC <- c("OoffiChr04g00263", "OoffiChr04g00266", "OoffiChr04g00265", "OoffiChr04g00269", "OoffiChr04g00260", "OoffiChr04g00264", "CYP76M14_1", "CYP76M14_2", "CYP76M14_3", "OoffiChr02g01877", "OoffiChr06g01688")
+
+OoMBGC_order <- c("OoCYP99-1", "OoCPS4*", "OoCPS4", "OoCYP99-2", "OoKSL4-2", "OoMAS", "OoKSL4-1", "OoCYP701A8", "OoCYP76M8", "CYP76M14_1", "CYP76M14_2", "CYP76M14_3")
+
+```
+
+Set y axis order
+
+```{r}
+ooffi_order <-
+officinalis_rnaseq %>%
+  filter(gene_name %in% OoMBGC ) %>%
+  mutate(TPM = case_when(
+    TPM == 0 ~ 0.011,
+    TRUE ~ TPM
+  )) %>%
+  group_by(Experiment) %>%
+  select(!gene_name) %>%
+  summarise_all(sum) %>%
+  arrange(TPM)
+
+```
+
+
+```{r}
+officinalis_MBGC_rnaseq <- 
+  officinalis_rnaseq %>%
+  filter(gene_name %in% OoMBGC ) %>%
+  mutate(momilactone_gene = case_when(
+    gene_name == "OoffiChr04g00263" ~ "OoCPS4",
+    gene_name == "OoffiChr04g00266" ~ "OoMAS",
+    gene_name == "OoffiChr04g00265" ~ "OoKSL4-2",
+    gene_name == "OoffiChr04g00269" ~ "OoKSL4-1",
+    gene_name == "OoffiChr04g00260" ~ "OoCYP99-1",
+    gene_name == "OoffiChr04g00264" ~ "OoCYP99-2",
+    gene_name == "OoffiChr02g01877" ~ "OoCYP76M8",
+    gene_name == "OoffiChr06g01688" ~ "OoCYP701A8",
+    TRUE ~ gene_name
+  )) %>%
+  mutate(cluster = case_when(
+    gene_name == "OoffiChr04g00263" ~ "MBGC",
+    gene_name == "OoffiChr04g00266" ~ "MBGC",
+    gene_name == "OoffiChr04g00265" ~ "MBGC",
+    gene_name == "OoffiChr04g00269" ~ "MBGC",
+    gene_name == "OoffiChr04g00260" ~ "MBGC",
+    gene_name == "OoffiChr04g00264" ~ "MBGC",
+    TRUE ~ "Outside_the_cluster"
+  )) %>%
+  ggplot(aes(y = fct_relevel(Experiment, ooffi_order$Experiment),
+             x = fct_relevel(momilactone_gene, OoMBGC_order),
+             fill = TPM) ) +
+  facet_grid(~factor(cluster, levels = c("MBGC", "Outside_the_cluster")), 
+             drop = T, 
+             scales="free_x", 
+             space="free_x") +
+  scale_fill_gradientn(colors = RColorBrewer::brewer.pal(9, "PuBuGn"),
+                      trans = "log",
+                       breaks = scales::trans_breaks("log10", function(x) 10^x)(c(1, 1e6)),
+                       limits = c(1, 1000),
+                      na.value = "#FFF7FB",
+                       oob = scales::squish) +
+  labs(x = "", 
+       y = "") +
+  scale_x_discrete(position = "top") +
+  theme_classic() +
+  theme(
+        text = element_text(family = "Helvetica", size = 14),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(3, 'mm'),
+        axis.text.x = element_text(size = 14, angle = 45, vjust = 0.5, hjust=0),
+        panel.border = element_rect(fill = NA,
+                                    linewidth = 1,
+                                    color = "black"),
+        panel.spacing = unit(0.2, "lines")
+        ) +
+  geom_tile()
+
+officinalis_MBGC_rnaseq
+```
+
+
+
+```{r}
+ ggsave('oofficinalis_MBGC_TPM_heatmap.pdf', 
+      dpi = 400,
+      width = 7, 
+      height = 3.5)
+```
+
+
