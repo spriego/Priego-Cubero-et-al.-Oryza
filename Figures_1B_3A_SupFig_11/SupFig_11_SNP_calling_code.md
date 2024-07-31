@@ -3,9 +3,9 @@ output:
   html_document: default
   pdf_document: default
 ---
-# SNPs Calling  (Figure 4E) 
+# SNPs Calling  (Sup. Fig. 11) 
 
-The code used to access the file `officinalis.KSL4-2.merged.snps.snpeff.haplotypecaller.tsv` which is utilized in Figure 4E, is provided below. Please note that all this code was executed in a different directory, and I am providing only the relative path to each file
+The code used to access the file `officinalis.KSL4-2.merged.snps.snpeff.haplotypecaller.tsv` which is utilized in Sup. Fig. 11, is provided below. Please note that all this code was executed in a different directory, and I am providing only the relative path to each file
 
 ## Download the sequencing data from the following accessions: 
 
